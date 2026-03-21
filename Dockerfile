@@ -2,12 +2,12 @@ FROM python:3.10-slim
 
 WORKDIR /app
 
-# Install Python dependencies
+# Install ffmpeg (required for Discord voice)
+RUN apt-get update && apt-get install -y ffmpeg libopus0 && rm -rf /var/lib/apt/lists/*
+
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 
-# Copy the rest of the files
 COPY . .
 
-# Run the bot
 CMD ["python", "bot.py"]
