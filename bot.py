@@ -1,29 +1,41 @@
 import discord
 import os
 from discord.ext import commands
-from keep_alive import keep_alive
-from dotenv import load_dotenv  # Add this line
+from dotenv import load_dotenv
+from flask import Flask
+from threading import Thread
 
-# This loads the variables from .env into the script
-load_dotenv() 
+load_dotenv()
 
-# Fetch credentials from environment variables
 TOKEN = os.environ.get("TOKEN")
-# Now this won't be 'None'
-CHANNEL_ID = int(os.environ.get("CHANNEL_ID")) 
+CHANNEL_ID = int(os.environ.get("CHANNEL_ID"))
 
+# Flask keep-alive
+app = Flask(__name__)
+
+@app.route('/')
+def home():
+    return "Bot is alive and sitting AFK 24/7."
+
+def run():
+    app.run(host='0.0.0.0', port=8080)
+
+def keep_alive():
+    t = Thread(target=run)
+    t.start()
+
+# Discord bot
 intents = discord.Intents.default()
-intents.voice_states = True  # Add this
+intents.voice_states = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 @bot.event
 async def on_ready():
     print(f"Logged in as {bot.user}")
-    
     channel = bot.get_channel(CHANNEL_ID)
     if channel:
         await channel.connect()
-        print("Successfully joined the Voice Channel and sitting AFK 24/7.")
+        print("Successfully joined the Voice Channel.")
     else:
         print("Could not find the Voice Channel. Check your CHANNEL_ID.")
 
