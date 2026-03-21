@@ -8,7 +8,15 @@ from threading import Thread
 load_dotenv()
 
 TOKEN = os.environ.get("TOKEN")
-CHANNEL_ID = int(os.environ.get("CHANNEL_ID"))
+CHANNEL_ID = os.environ.get("CHANNEL_ID")
+
+# Validate env vars early so we get a clear error
+if not TOKEN:
+    raise ValueError("TOKEN is missing from environment variables!")
+if not CHANNEL_ID:
+    raise ValueError("CHANNEL_ID is missing from environment variables!")
+
+CHANNEL_ID = int(CHANNEL_ID)
 
 # Flask keep-alive
 app = Flask(__name__)
@@ -33,11 +41,16 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 async def on_ready():
     print(f"Logged in as {bot.user}")
     channel = bot.get_channel(CHANNEL_ID)
-    if channel:
-        await channel.connect()
-        print("Successfully joined the Voice Channel.")
+    print(f"Channel found: {channel}")
+    print(f"Channel type: {type(channel)}")
+    if isinstance(channel, discord.VoiceChannel):
+        try:
+            await channel.connect()
+            print("Successfully joined the Voice Channel.")
+        except Exception as e:
+            print(f"Failed to connect to voice channel: {e}")
     else:
-        print("Could not find the Voice Channel. Check your CHANNEL_ID.")
+        print(f"Channel is not a VoiceChannel or not found. CHANNEL_ID={CHANNEL_ID}")
 
 keep_alive()
 bot.run(TOKEN)
