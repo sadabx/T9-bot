@@ -10,7 +10,6 @@ load_dotenv()
 TOKEN = os.environ.get("TOKEN")
 CHANNEL_ID = os.environ.get("CHANNEL_ID")
 
-# Validate env vars early so we get a clear error
 if not TOKEN:
     raise ValueError("TOKEN is missing from environment variables!")
 if not CHANNEL_ID:
@@ -23,7 +22,7 @@ app = Flask(__name__)
 
 @app.route('/')
 def home():
-    return "Bot is alive and sitting AFK 24/7."
+    return "Bot is alive!"
 
 def run():
     app.run(host='0.0.0.0', port=8080)
@@ -34,23 +33,46 @@ def keep_alive():
 
 # Discord bot
 intents = discord.Intents.default()
+intents.message_content = True
 intents.voice_states = True
-bot = commands.Bot(command_prefix="!", intents=intents)
+bot = commands.Bot(command_prefix=".", intents=intents)
 
 @bot.event
 async def on_ready():
-    print(f"Logged in as {bot.user}")
+    print(f"Logged in as {bot.user} and ONLINE!")
+
+@bot.command(name="afk")
+async def afk(ctx):
+    """Join the AFK voice channel"""
     channel = bot.get_channel(CHANNEL_ID)
-    print(f"Channel found: {channel}")
-    print(f"Channel type: {type(channel)}")
-    if isinstance(channel, discord.VoiceChannel):
-        try:
-            await channel.connect()
-            print("Successfully joined the Voice Channel.")
-        except Exception as e:
-            print(f"Failed to connect to voice channel: {e}")
+    
+    if channel is None:
+        await ctx.send("❌ Could not find the voice channel. Check CHANNEL_ID.")
+        return
+
+    if not isinstance(channel, discord.VoiceChannel):
+        await ctx.send("❌ That channel is not a voice channel.")
+        return
+
+    # If already connected, disconnect first
+    if ctx.guild.voice_client:
+        await ctx.guild.voice_client.disconnect()
+
+    try:
+        await channel.connect()
+        await ctx.send("Now sitting AFK in the voice channel 24/7!")
+    except Exception as e:
+        await ctx.send(f"❌ Failed to join: {e}")
+        print(f"Voice connect error: {e}")
+
+@bot.command(name="leave")
+async def leave(ctx):
+    """Leave the voice channel"""
+    if ctx.guild.voice_client:
+        await ctx.guild.voice_client.disconnect()
+        await ctx.send("Left the voice channel.")
     else:
-        print(f"Channel is not a VoiceChannel or not found. CHANNEL_ID={CHANNEL_ID}")
+        await ctx.send("❌ Not in a voice channel.")
 
 keep_alive()
 bot.run(TOKEN)
